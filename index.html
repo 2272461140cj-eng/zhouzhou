@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="批量替换信奥讲座海报的日期、时间和校区，并导出 PNG。" />
+    <title>信奥讲座海报工作台</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23083fbd'/%3E%3Cpath d='M15 16h34v7H15zm0 13h22v7H15zm0 13h34v7H15z' fill='white'/%3E%3Ccircle cx='45' cy='32.5' r='8.5' fill='%2300a8e8'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">小码王 · 信奥集训</p>
+        <h1>讲座海报工作台</h1>
+      </div>
+      <div class="topbar-meta">
+        <span>9 套老师模板</span>
+        <span>1242 × 2520 PNG</span>
+        <span class="privacy">数据仅在本机处理</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel editor-panel" aria-labelledby="editor-title">
+        <div class="panel-heading">
+          <span class="step">01</span>
+          <div>
+            <h2 id="editor-title">填写海报信息</h2>
+            <p>只替换日期、时间和校区</p>
+          </div>
+        </div>
+
+        <form id="poster-form">
+          <label>
+            老师模板
+            <select id="teacher" required></select>
+          </label>
+          <div class="field-row">
+            <label>
+              日期
+              <input id="date" type="date" required autocomplete="off" />
+            </label>
+            <label>
+              时间
+              <input id="time" required autocomplete="off" placeholder="如 18:30-20:30" />
+            </label>
+          </div>
+          <label>
+            校区
+            <input id="campus" required autocomplete="off" placeholder="如 小码王杭州文鼎国际校区" />
+          </label>
+          <label>
+            输出文件名
+            <input id="filename" autocomplete="off" placeholder="留空则自动生成" />
+          </label>
+          <div class="button-row">
+            <button class="button primary" type="submit" id="add-record">加入生成清单</button>
+            <button class="button secondary" type="button" id="download-current">下载当前 PNG</button>
+          </div>
+        </form>
+
+        <div class="import-box" id="drop-zone">
+          <div>
+            <strong>批量导入 Excel / CSV</strong>
+            <p>表头：老师、日期、时间、校区、输出文件名</p>
+          </div>
+          <div class="import-actions">
+            <label class="button ghost file-button">
+              选择文件
+              <input id="file-input" type="file" accept=".xlsx,.xls,.csv" />
+            </label>
+            <button class="text-button" type="button" id="download-template">下载表格模板</button>
+          </div>
+        </div>
+
+        <details class="font-note">
+          <summary>字体与版权说明</summary>
+          <p>生成字段采用 Noto Sans SC，遵循 SIL Open Font License。原海报画面保持为模板图片，不重新分发原 PPT 字体文件。</p>
+          <a href="./OFL-NotoSansSC.txt" target="_blank" rel="noreferrer">查看字体许可</a>
+        </details>
+      </section>
+
+      <section class="panel preview-panel" aria-labelledby="preview-title">
+        <div class="panel-heading compact">
+          <span class="step">02</span>
+          <div>
+            <h2 id="preview-title">实时预览</h2>
+            <p id="preview-name">沈老师</p>
+          </div>
+        </div>
+        <div class="canvas-shell">
+          <canvas id="poster-canvas" width="1242" height="2520" aria-label="海报预览"></canvas>
+          <div class="canvas-loading" id="canvas-loading">正在载入模板…</div>
+        </div>
+        <p class="preview-hint">预览会自动更新，下载文件保持原始尺寸。</p>
+      </section>
+
+      <section class="panel list-panel" aria-labelledby="list-title">
+        <div class="panel-heading list-heading">
+          <div class="heading-copy">
+            <span class="step">03</span>
+            <div>
+              <h2 id="list-title">生成清单</h2>
+              <p><span id="record-count">0</span> / 50 张</p>
+            </div>
+          </div>
+          <button class="button primary" id="download-all" type="button" disabled>打包下载 PNG</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>老师</th>
+                <th>日期</th>
+                <th>时间</th>
+                <th>校区</th>
+                <th><span class="sr-only">操作</span></th>
+              </tr>
+            </thead>
+            <tbody id="record-body"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state">
+            <span>清单还是空的</span>
+            <p>填写左侧信息，或导入表格开始生成。</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
