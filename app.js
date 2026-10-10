@@ -10,10 +10,29 @@ const TEACHERS = [
   { id: "qi", name: "戚老师", image: "./teacher-9.png", date: "10/17", time: "13:30-15:30", campus: "小码王南京新街口校区" }
 ];
 
+const CITY_CAMPUSES = [
+  { city: "北京", campuses: ["北京金源时代校区", "北京双井校区", "北京望京悠乐汇校区", "北京五道口校区", "北京亚运村校区"] },
+  { city: "成都", campuses: ["成都鹭洲里校区", "成都牛市口校区", "成都新希望校区"] },
+  { city: "广州", campuses: ["广州北京路校区", "广州番禺骏和广场校区", "广州海珠昌岗校区", "广州天河北校区", "广州万胜围校区", "广州珠江新城校区"] },
+  { city: "杭州", campuses: ["杭州滨江乐游城校区", "杭州凤起东路校区", "杭州黄龙体育中心校区", "杭州近江昆仑校区", "杭州临平西子国际校区", "杭州深蓝广场校区", "杭州未来科技城校区", "杭州文鼎国际校区", "杭州下沙印象城校区", "杭州萧山金城路校区", "杭州中大银泰校区"] },
+  { city: "南京", campuses: ["南京清江广场校区", "南京仙林九霄校区", "南京新街口校区"] },
+  { city: "宁波", campuses: ["宁波广博国贸校区", "宁波宏泰广场校区", "宁波青林湾校区", "宁波芝士公园校区"] },
+  { city: "上海", campuses: ["上海南方商城校区", "上海世纪公园校区", "上海西藏南路校区", "上海五角场校区", "上海天山缤谷广场校区", "上海虹口足球场校区", "上海徐汇光启城校区", "上海浦东金桥校区", "上海普陀长寿路189校区", "上海莘庄维璟印象城校区", "上海大宁国际校区"] },
+  { city: "深圳", campuses: ["深圳宝安丽晶国际校区", "深圳东海城市广场校区", "深圳福田百花校区", "深圳福田CBD校区", "深圳龙岗中心城校区", "深圳龙华宝山时代校区", "深圳罗湖喜荟城校区", "深圳南山海岸城校区", "深圳南山万象天地校区", "深圳蛇口水湾校区"] },
+  { city: "苏州", campuses: ["苏州苏悦广场校区", "苏州新光天地校区"] },
+  { city: "无锡", campuses: ["无锡中山路校区"] },
+  { city: "武汉", campuses: ["武汉南湖校区", "武汉徐东新世界校区"] },
+  { city: "西安", campuses: ["西安芙蓉新天地校区"] }
+].map((item) => ({
+  city: item.city,
+  campuses: item.campuses.map((campus) => ({ label: campus, value: `小码王${campus}` }))
+}));
+
 const form = document.querySelector("#poster-form");
 const teacherInput = document.querySelector("#teacher");
 const dateInput = document.querySelector("#date");
 const timeInput = document.querySelector("#time");
+const cityInput = document.querySelector("#city");
 const campusInput = document.querySelector("#campus");
 const filenameInput = document.querySelector("#filename");
 const canvas = document.querySelector("#poster-canvas");
@@ -29,6 +48,7 @@ const fileInput = document.querySelector("#file-input");
 const dropZone = document.querySelector("#drop-zone");
 
 const images = new Map();
+let xlsxLoadPromise;
 let records = [];
 let editIndex = -1;
 let renderVersion = 0;
@@ -40,6 +60,52 @@ for (const teacher of TEACHERS) {
   option.value = teacher.id;
   option.textContent = teacher.name;
   teacherInput.append(option);
+}
+
+for (const item of CITY_CAMPUSES) {
+  const option = document.createElement("option");
+  option.value = item.city;
+  option.textContent = item.city;
+  cityInput.append(option);
+}
+
+function setCampusOptions(city, preferredCampus = "") {
+  const item = CITY_CAMPUSES.find((entry) => entry.city === city);
+  campusInput.innerHTML = "";
+  for (const campus of item?.campuses || []) {
+    const option = document.createElement("option");
+    option.value = campus.value;
+    option.textContent = campus.label;
+    campusInput.append(option);
+  }
+  if (preferredCampus && [...campusInput.options].some((option) => option.value === preferredCampus)) {
+    campusInput.value = preferredCampus;
+  }
+}
+
+function setCampusFromValue(value) {
+  const campusValue = String(value || "").trim();
+  for (const item of CITY_CAMPUSES) {
+    if (item.campuses.some((campus) => campus.value === campusValue)) {
+      cityInput.value = item.city;
+      setCampusOptions(item.city, campusValue);
+      return;
+    }
+  }
+
+  let customCity = [...cityInput.options].find((option) => option.value === "其他");
+  if (!customCity) {
+    customCity = document.createElement("option");
+    customCity.value = "其他";
+    customCity.textContent = "其他（表格导入）";
+    cityInput.append(customCity);
+  }
+  cityInput.value = "其他";
+  campusInput.innerHTML = "";
+  const customCampus = document.createElement("option");
+  customCampus.value = campusValue;
+  customCampus.textContent = campusValue || "未填写校区";
+  campusInput.append(customCampus);
 }
 
 function selectedTeacher() {
@@ -191,7 +257,7 @@ function setFormFromTeacher(fillDefaults = true) {
   if (fillDefaults) {
     dateInput.value = dateInputValue(teacher.date);
     timeInput.value = teacher.time;
-    campusInput.value = teacher.campus;
+    setCampusFromValue(teacher.campus);
     filenameInput.value = "";
   }
   editIndex = -1;
@@ -249,7 +315,12 @@ form.addEventListener("submit", (event) => {
 });
 
 teacherInput.addEventListener("change", () => setFormFromTeacher(true));
-[dateInput, timeInput, campusInput].forEach((input) => input.addEventListener("input", () => renderPoster()));
+[dateInput, timeInput].forEach((input) => input.addEventListener("input", () => renderPoster()));
+cityInput.addEventListener("change", () => {
+  setCampusOptions(cityInput.value);
+  renderPoster();
+});
+campusInput.addEventListener("change", () => renderPoster());
 
 recordBody.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-index]");
@@ -266,7 +337,7 @@ recordBody.addEventListener("click", (event) => {
   teacherInput.value = record.teacherId;
   dateInput.value = dateInputValue(record.date);
   timeInput.value = record.time;
-  campusInput.value = record.campus;
+  setCampusFromValue(record.campus);
   filenameInput.value = record.filename || "";
   document.querySelector("#add-record").textContent = "更新清单内容";
   renderPoster(record);
@@ -314,8 +385,22 @@ function readCell(row, aliases) {
   return key ? String(row[key] ?? "").trim() : "";
 }
 
+function ensureXlsx() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!xlsxLoadPromise) {
+    xlsxLoadPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "./xlsx.full.min.js";
+      script.onload = () => resolve(window.XLSX);
+      script.onerror = () => reject(new Error("表格组件载入失败，请检查网络后重试"));
+      document.head.append(script);
+    });
+  }
+  return xlsxLoadPromise;
+}
+
 async function importWorkbook(file) {
-  if (!window.XLSX) throw new Error("表格组件未载入，请刷新后重试");
+  await ensureXlsx();
   const data = await file.arrayBuffer();
   const workbook = XLSX.read(data, { type: "array", cellDates: false });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -347,7 +432,7 @@ async function importWorkbook(file) {
     teacherInput.value = first.teacherId;
     dateInput.value = dateInputValue(first.date);
     timeInput.value = first.time;
-    campusInput.value = first.campus;
+    setCampusFromValue(first.campus);
     filenameInput.value = first.filename;
     renderPoster(first);
   }
@@ -478,7 +563,7 @@ function registerWebMcpTools() {
         const record = { teacherId: teacher.id, teacher: teacher.name, date: normalizePosterDate(input.date), time: String(input.time).trim(), campus: String(input.campus).trim(), filename: "" };
         const error = validateRecord(record);
         if (error) throw new Error(error);
-        teacherInput.value = teacher.id; dateInput.value = dateInputValue(record.date); timeInput.value = record.time; campusInput.value = record.campus;
+        teacherInput.value = teacher.id; dateInput.value = dateInputValue(record.date); timeInput.value = record.time; setCampusFromValue(record.campus);
         await renderPoster(record);
         return { status: "ready", ...record };
       }

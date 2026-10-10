@@ -6,8 +6,7 @@
     <meta name="description" content="批量替换信奥讲座海报的日期、时间和校区，并导出 PNG。" />
     <title>信奥讲座海报工作台</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23083fbd'/%3E%3Cpath d='M15 16h34v7H15zm0 13h22v7H15zm0 13h34v7H15z' fill='white'/%3E%3Ccircle cx='45' cy='32.5' r='8.5' fill='%2300a8e8'/%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css" />
-    <script src="./xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="./styles.css?v=20261010-2" />
   </head>
   <body>
     <header class="topbar">
@@ -28,7 +27,7 @@
           <span class="step">01</span>
           <div>
             <h2 id="editor-title">填写海报信息</h2>
-            <p>只替换日期、时间和校区</p>
+            <p>选择城市和校区，只替换日期、时间与校区</p>
           </div>
         </div>
 
@@ -47,10 +46,16 @@
               <input id="time" required autocomplete="off" placeholder="如 18:30-20:30" />
             </label>
           </div>
-          <label>
-            校区
-            <input id="campus" required autocomplete="off" placeholder="如 小码王杭州文鼎国际校区" />
-          </label>
+          <div class="field-row campus-row">
+            <label>
+              城市
+              <select id="city" required aria-label="城市"></select>
+            </label>
+            <label>
+              校区
+              <select id="campus" required aria-label="校区"></select>
+            </label>
+          </div>
           <label>
             输出文件名
             <input id="filename" autocomplete="off" placeholder="留空则自动生成" />
@@ -131,6 +136,6 @@
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js"></script>
+    <script src="./app.js?v=20261010-2"></script>
   </body>
 </html>
