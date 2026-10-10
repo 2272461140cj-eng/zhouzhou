@@ -30,8 +30,7 @@ const CITY_CAMPUSES = [
 
 const form = document.querySelector("#poster-form");
 const teacherInput = document.querySelector("#teacher");
-const monthInput = document.querySelector("#month");
-const dayInput = document.querySelector("#day");
+const dateInput = document.querySelector("#date");
 const startTimeInput = document.querySelector("#start-time");
 const endTimeInput = document.querySelector("#end-time");
 const cityInput = document.querySelector("#city");
@@ -56,27 +55,6 @@ let editIndex = -1;
 let renderVersion = 0;
 let toastTimer;
 const DEFAULT_YEAR = "2026";
-
-for (let month = 1; month <= 12; month += 1) {
-  const option = document.createElement("option");
-  option.value = String(month).padStart(2, "0");
-  option.textContent = `${month}月`;
-  monthInput.append(option);
-}
-
-function updateDayOptions(month, preferredDay = "") {
-  const monthNumber = Number(month || 1);
-  const dayCount = new Date(Number(DEFAULT_YEAR), monthNumber, 0).getDate();
-  dayInput.innerHTML = "";
-  for (let day = 1; day <= dayCount; day += 1) {
-    const value = String(day).padStart(2, "0");
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = `${day}日`;
-    dayInput.append(option);
-  }
-  if (preferredDay && Number(preferredDay) <= dayCount) dayInput.value = preferredDay;
-}
 
 function timeLabel(totalMinutes) {
   const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
@@ -170,34 +148,36 @@ function selectedTeacher() {
 }
 
 function dateInputValue(value) {
-  const text = String(value || "").trim();
+  const text = String(value || "").trim().replace(/[T\s].*$/, "");
   let match = text.match(/^(\d{4})[-\/.年](\d{1,2})[-\/.月](\d{1,2})(?:日)?$/);
-  if (match) return `${match[1]}-${match[2].padStart(2, "0")}-${match[3].padStart(2, "0")}`;
+  if (match) return validDateParts(match[1], match[2], match[3]);
+  match = text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (match) return validDateParts(match[3], match[1], match[2]);
+  match = text.match(/^(\d{8})$/);
+  if (match) return validDateParts(text.slice(0, 4), text.slice(4, 6), text.slice(6, 8));
   match = text.match(/^(\d{1,2})[\/.-](\d{1,2})$/);
-  if (match) return `${DEFAULT_YEAR}-${match[1].padStart(2, "0")}-${match[2].padStart(2, "0")}`;
+  if (match) return validDateParts(DEFAULT_YEAR, match[1], match[2]);
   match = text.match(/^(\d{1,2})月(\d{1,2})日?$/);
-  if (match) return `${DEFAULT_YEAR}-${match[1].padStart(2, "0")}-${match[2].padStart(2, "0")}`;
+  if (match) return validDateParts(DEFAULT_YEAR, match[1], match[2]);
   return "";
 }
 
+function validDateParts(year, month, day) {
+  const normalized = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const parsed = new Date(`${normalized}T00:00:00`);
+  return !Number.isNaN(parsed.getTime()) && parsed.getFullYear() === Number(year) && parsed.getMonth() + 1 === Number(month) && parsed.getDate() === Number(day)
+    ? normalized
+    : "";
+}
+
 function posterDate(value) {
-  const text = String(value || "").trim();
-  const match = text.match(/^\d{4}-(\d{2})-(\d{2})$/);
-  return match ? `${match[1]}/${match[2]}` : text;
+  const normalized = dateInputValue(value);
+  const match = normalized.match(/^\d{4}-(\d{2})-(\d{2})$/);
+  return match ? `${match[1]}/${match[2]}` : "";
 }
 
 function setDateFromValue(value) {
-  const normalized = dateInputValue(value);
-  const match = normalized.match(/^\d{4}-(\d{2})-(\d{2})$/);
-  const month = match?.[1] || "10";
-  const day = match?.[2] || "11";
-  monthInput.value = month;
-  updateDayOptions(month, day);
-}
-
-function normalizePosterDate(value) {
-  const inputValue = dateInputValue(value);
-  return inputValue ? posterDate(inputValue) : String(value || "").trim();
+  dateInput.value = dateInputValue(value) || `${DEFAULT_YEAR}-10-11`;
 }
 
 function currentRecord() {
@@ -205,7 +185,7 @@ function currentRecord() {
   return {
     teacherId: teacher.id,
     teacher: teacher.name,
-    date: `${monthInput.value}/${dayInput.value}`,
+    date: dateInput.value,
     time: `${startTimeInput.value}-${endTimeInput.value}`,
     campus: campusInput.value.trim(),
     filename: filenameInput.value.trim()
@@ -307,7 +287,8 @@ async function renderPoster(record = currentRecord(), target = canvas) {
     targetCtx.fillText(text, x, y, maxWidth);
   };
 
-  drawTextOn(record.date || teacher.date, 88, 900, 310, 96, 58, "#0b43ba", 900);
+  // 无论日期来自日历、Excel 还是 CSV，海报始终只绘制月/日。
+  drawTextOn(posterDate(record.date || teacher.date), 88, 900, 310, 96, 58, "#0b43ba", 900);
   drawTextOn(record.time || teacher.time, 112, 986, 276, 49, 34, "#ffffff", 700);
   drawTextOn(record.campus || teacher.campus, 506, 2307, 686, 57, 36, "#050505", 900);
 
@@ -333,7 +314,7 @@ function setFormFromTeacher(fillDefaults = true) {
 
 function validateRecord(record) {
   if (!record.teacherId || !record.date || !record.time || !record.campus) return "老师、日期、时间和校区均不能为空";
-  if (record.date.length > 18) return "日期内容过长，请按海报格式填写";
+  if (!dateInputValue(record.date)) return "日期格式无法识别，请使用年月日";
   if (record.time.length > 24) return "时间内容过长，请按海报格式填写";
   const [startTime, endTime] = record.time.split("-");
   if (startTime && endTime && startTime >= endTime) return "结束时间必须晚于开始时间";
@@ -383,11 +364,7 @@ form.addEventListener("submit", (event) => {
 });
 
 teacherInput.addEventListener("change", () => setFormFromTeacher(true));
-monthInput.addEventListener("change", () => {
-  updateDayOptions(monthInput.value, dayInput.value);
-  renderPoster();
-});
-dayInput.addEventListener("change", () => renderPoster());
+dateInput.addEventListener("change", () => renderPoster());
 startTimeInput.addEventListener("change", () => {
   if (endTimeInput.value <= startTimeInput.value) {
     const startIndex = [...endTimeInput.options].findIndex((option) => option.value === startTimeInput.value);
@@ -495,7 +472,7 @@ async function importWorkbook(file) {
     const record = {
       teacherId: teacher?.id || "",
       teacher: teacher?.name || teacherValue,
-      date: normalizePosterDate(readCell(row, ["日期", "讲座日期", "date"])),
+      date: dateInputValue(readCell(row, ["日期", "讲座日期", "date"])),
       time: readCell(row, ["时间", "讲座时间", "time"]),
       campus: readCell(row, ["校区", "讲座地点", "地点", "campus"]),
       filename: readCell(row, ["输出文件名", "文件名", "filename"])
@@ -542,7 +519,7 @@ dropZone.addEventListener("drop", async (event) => {
 });
 
 document.querySelector("#download-template").addEventListener("click", () => {
-  const csv = "\uFEFF老师,日期,时间,校区,输出文件名\n沈老师,10/11,10:00-12:00,小码王苏州苏悦广场校区,沈老师-10月11日\n";
+  const csv = "\uFEFF老师,日期,时间,校区,输出文件名\n沈老师,2026-10-11,10:00-12:00,小码王苏州苏悦广场校区,沈老师-10月11日\n";
   triggerDownload(new Blob([csv], { type: "text/csv;charset=utf-8" }), "海报批量生成模板.csv");
 });
 
@@ -640,7 +617,7 @@ function registerWebMcpTools() {
       execute: async (input) => {
         const teacher = resolveTeacher(input.teacher);
         if (!teacher) throw new Error("未找到对应老师模板");
-        const record = { teacherId: teacher.id, teacher: teacher.name, date: normalizePosterDate(input.date), time: String(input.time).trim(), campus: String(input.campus).trim(), filename: "" };
+        const record = { teacherId: teacher.id, teacher: teacher.name, date: dateInputValue(input.date), time: String(input.time).trim(), campus: String(input.campus).trim(), filename: "" };
         const error = validateRecord(record);
         if (error) throw new Error(error);
         teacherInput.value = teacher.id; setDateFromValue(record.date); setTimeRange(record.time); setCampusFromValue(record.campus);

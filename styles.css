@@ -117,7 +117,6 @@ input, select {
 }
 input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(10,66,189,.11); }
 .field-row { display: grid; grid-template-columns: 1fr 1.35fr; gap: 10px; }
-.date-row { grid-template-columns: 1fr 1fr; }
 .time-row { grid-template-columns: 1fr 1fr; }
 .campus-row { grid-template-columns: .8fr 1.55fr; }
 
