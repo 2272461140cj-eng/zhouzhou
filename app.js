@@ -31,7 +31,8 @@ const CITY_CAMPUSES = [
 const form = document.querySelector("#poster-form");
 const teacherInput = document.querySelector("#teacher");
 const dateInput = document.querySelector("#date");
-const timeInput = document.querySelector("#time");
+const startTimeInput = document.querySelector("#start-time");
+const endTimeInput = document.querySelector("#end-time");
 const cityInput = document.querySelector("#city");
 const campusInput = document.querySelector("#campus");
 const filenameInput = document.querySelector("#filename");
@@ -54,6 +55,40 @@ let editIndex = -1;
 let renderVersion = 0;
 let toastTimer;
 const DEFAULT_YEAR = "2026";
+
+function timeLabel(totalMinutes) {
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
+  const minutes = String(totalMinutes % 60).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+for (let minutes = 8 * 60; minutes <= 23 * 60; minutes += 30) {
+  const value = timeLabel(minutes);
+  for (const select of [startTimeInput, endTimeInput]) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    select.append(option);
+  }
+}
+
+function ensureTimeOption(select, value) {
+  if ([...select.options].some((option) => option.value === value)) return;
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = value;
+  select.append(option);
+}
+
+function setTimeRange(value) {
+  const match = String(value || "").trim().match(/^(\d{1,2}:\d{2})\s*[-–—~至]\s*(\d{1,2}:\d{2})$/);
+  const start = match?.[1]?.padStart(5, "0") || "10:00";
+  const end = match?.[2]?.padStart(5, "0") || "12:00";
+  ensureTimeOption(startTimeInput, start);
+  ensureTimeOption(endTimeInput, end);
+  startTimeInput.value = start;
+  endTimeInput.value = end;
+}
 
 for (const teacher of TEACHERS) {
   const option = document.createElement("option");
@@ -140,7 +175,7 @@ function currentRecord() {
     teacherId: teacher.id,
     teacher: teacher.name,
     date: posterDate(dateInput.value),
-    time: timeInput.value.trim(),
+    time: `${startTimeInput.value}-${endTimeInput.value}`,
     campus: campusInput.value.trim(),
     filename: filenameInput.value.trim()
   };
@@ -256,7 +291,7 @@ function setFormFromTeacher(fillDefaults = true) {
   const teacher = selectedTeacher();
   if (fillDefaults) {
     dateInput.value = dateInputValue(teacher.date);
-    timeInput.value = teacher.time;
+    setTimeRange(teacher.time);
     setCampusFromValue(teacher.campus);
     filenameInput.value = "";
   }
@@ -269,6 +304,8 @@ function validateRecord(record) {
   if (!record.teacherId || !record.date || !record.time || !record.campus) return "老师、日期、时间和校区均不能为空";
   if (record.date.length > 18) return "日期内容过长，请按海报格式填写";
   if (record.time.length > 24) return "时间内容过长，请按海报格式填写";
+  const [startTime, endTime] = record.time.split("-");
+  if (startTime && endTime && startTime >= endTime) return "结束时间必须晚于开始时间";
   if (record.campus.length > 30) return "校区名称最多 30 个字符";
   return "";
 }
@@ -315,7 +352,15 @@ form.addEventListener("submit", (event) => {
 });
 
 teacherInput.addEventListener("change", () => setFormFromTeacher(true));
-[dateInput, timeInput].forEach((input) => input.addEventListener("input", () => renderPoster()));
+dateInput.addEventListener("input", () => renderPoster());
+startTimeInput.addEventListener("change", () => {
+  if (endTimeInput.value <= startTimeInput.value) {
+    const startIndex = [...endTimeInput.options].findIndex((option) => option.value === startTimeInput.value);
+    endTimeInput.selectedIndex = Math.min(startIndex + 2, endTimeInput.options.length - 1);
+  }
+  renderPoster();
+});
+endTimeInput.addEventListener("change", () => renderPoster());
 cityInput.addEventListener("change", () => {
   setCampusOptions(cityInput.value);
   renderPoster();
@@ -336,7 +381,7 @@ recordBody.addEventListener("click", (event) => {
   editIndex = index;
   teacherInput.value = record.teacherId;
   dateInput.value = dateInputValue(record.date);
-  timeInput.value = record.time;
+  setTimeRange(record.time);
   setCampusFromValue(record.campus);
   filenameInput.value = record.filename || "";
   document.querySelector("#add-record").textContent = "更新清单内容";
@@ -431,7 +476,7 @@ async function importWorkbook(file) {
     const first = records[0];
     teacherInput.value = first.teacherId;
     dateInput.value = dateInputValue(first.date);
-    timeInput.value = first.time;
+    setTimeRange(first.time);
     setCampusFromValue(first.campus);
     filenameInput.value = first.filename;
     renderPoster(first);
@@ -563,7 +608,7 @@ function registerWebMcpTools() {
         const record = { teacherId: teacher.id, teacher: teacher.name, date: normalizePosterDate(input.date), time: String(input.time).trim(), campus: String(input.campus).trim(), filename: "" };
         const error = validateRecord(record);
         if (error) throw new Error(error);
-        teacherInput.value = teacher.id; dateInput.value = dateInputValue(record.date); timeInput.value = record.time; setCampusFromValue(record.campus);
+        teacherInput.value = teacher.id; dateInput.value = dateInputValue(record.date); setTimeRange(record.time); setCampusFromValue(record.campus);
         await renderPoster(record);
         return { status: "ready", ...record };
       }
