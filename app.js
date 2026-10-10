@@ -30,7 +30,8 @@ const CITY_CAMPUSES = [
 
 const form = document.querySelector("#poster-form");
 const teacherInput = document.querySelector("#teacher");
-const dateInput = document.querySelector("#date");
+const monthInput = document.querySelector("#month");
+const dayInput = document.querySelector("#day");
 const startTimeInput = document.querySelector("#start-time");
 const endTimeInput = document.querySelector("#end-time");
 const cityInput = document.querySelector("#city");
@@ -55,6 +56,27 @@ let editIndex = -1;
 let renderVersion = 0;
 let toastTimer;
 const DEFAULT_YEAR = "2026";
+
+for (let month = 1; month <= 12; month += 1) {
+  const option = document.createElement("option");
+  option.value = String(month).padStart(2, "0");
+  option.textContent = `${month}月`;
+  monthInput.append(option);
+}
+
+function updateDayOptions(month, preferredDay = "") {
+  const monthNumber = Number(month || 1);
+  const dayCount = new Date(Number(DEFAULT_YEAR), monthNumber, 0).getDate();
+  dayInput.innerHTML = "";
+  for (let day = 1; day <= dayCount; day += 1) {
+    const value = String(day).padStart(2, "0");
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = `${day}日`;
+    dayInput.append(option);
+  }
+  if (preferredDay && Number(preferredDay) <= dayCount) dayInput.value = preferredDay;
+}
 
 function timeLabel(totalMinutes) {
   const hours = String(Math.floor(totalMinutes / 60)).padStart(2, "0");
@@ -164,6 +186,15 @@ function posterDate(value) {
   return match ? `${match[1]}/${match[2]}` : text;
 }
 
+function setDateFromValue(value) {
+  const normalized = dateInputValue(value);
+  const match = normalized.match(/^\d{4}-(\d{2})-(\d{2})$/);
+  const month = match?.[1] || "10";
+  const day = match?.[2] || "11";
+  monthInput.value = month;
+  updateDayOptions(month, day);
+}
+
 function normalizePosterDate(value) {
   const inputValue = dateInputValue(value);
   return inputValue ? posterDate(inputValue) : String(value || "").trim();
@@ -174,7 +205,7 @@ function currentRecord() {
   return {
     teacherId: teacher.id,
     teacher: teacher.name,
-    date: posterDate(dateInput.value),
+    date: `${monthInput.value}/${dayInput.value}`,
     time: `${startTimeInput.value}-${endTimeInput.value}`,
     campus: campusInput.value.trim(),
     filename: filenameInput.value.trim()
@@ -290,7 +321,7 @@ async function renderPoster(record = currentRecord(), target = canvas) {
 function setFormFromTeacher(fillDefaults = true) {
   const teacher = selectedTeacher();
   if (fillDefaults) {
-    dateInput.value = dateInputValue(teacher.date);
+    setDateFromValue(teacher.date);
     setTimeRange(teacher.time);
     setCampusFromValue(teacher.campus);
     filenameInput.value = "";
@@ -352,7 +383,11 @@ form.addEventListener("submit", (event) => {
 });
 
 teacherInput.addEventListener("change", () => setFormFromTeacher(true));
-dateInput.addEventListener("input", () => renderPoster());
+monthInput.addEventListener("change", () => {
+  updateDayOptions(monthInput.value, dayInput.value);
+  renderPoster();
+});
+dayInput.addEventListener("change", () => renderPoster());
 startTimeInput.addEventListener("change", () => {
   if (endTimeInput.value <= startTimeInput.value) {
     const startIndex = [...endTimeInput.options].findIndex((option) => option.value === startTimeInput.value);
@@ -380,7 +415,7 @@ recordBody.addEventListener("click", (event) => {
   const record = records[index];
   editIndex = index;
   teacherInput.value = record.teacherId;
-  dateInput.value = dateInputValue(record.date);
+  setDateFromValue(record.date);
   setTimeRange(record.time);
   setCampusFromValue(record.campus);
   filenameInput.value = record.filename || "";
@@ -475,7 +510,7 @@ async function importWorkbook(file) {
   if (records[0]) {
     const first = records[0];
     teacherInput.value = first.teacherId;
-    dateInput.value = dateInputValue(first.date);
+    setDateFromValue(first.date);
     setTimeRange(first.time);
     setCampusFromValue(first.campus);
     filenameInput.value = first.filename;
@@ -608,7 +643,7 @@ function registerWebMcpTools() {
         const record = { teacherId: teacher.id, teacher: teacher.name, date: normalizePosterDate(input.date), time: String(input.time).trim(), campus: String(input.campus).trim(), filename: "" };
         const error = validateRecord(record);
         if (error) throw new Error(error);
-        teacherInput.value = teacher.id; dateInput.value = dateInputValue(record.date); setTimeRange(record.time); setCampusFromValue(record.campus);
+        teacherInput.value = teacher.id; setDateFromValue(record.date); setTimeRange(record.time); setCampusFromValue(record.campus);
         await renderPoster(record);
         return { status: "ready", ...record };
       }
