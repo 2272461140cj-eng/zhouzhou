@@ -7,7 +7,8 @@ const TEACHERS = [
   { id: "chen", name: "陈老师", image: "./teacher-6.png", date: "10/24", time: "18:30-20:30", campus: "小码王上海浦东金桥校区" },
   { id: "xia", name: "夏老师", image: "./teacher-7.png", date: "10/17", time: "15:30-17:30", campus: "小码王上海大宁国际校区" },
   { id: "guo", name: "郭老师", image: "./teacher-8.png", date: "10/17", time: "13:30-15:30", campus: "小码王南京新街口校区" },
-  { id: "qi", name: "戚老师", image: "./teacher-9.png", date: "10/17", time: "13:30-15:30", campus: "小码王南京新街口校区" }
+  { id: "qi", name: "戚老师", image: "./teacher-9.png", date: "10/17", time: "13:30-15:30", campus: "小码王南京新街口校区" },
+  { id: "li", name: "李老师", image: "./teacher-10.png", date: "10/25", time: "10:00-12:00", campus: "小码王广州珠江新城校区" }
 ];
 
 const CITY_CAMPUSES = [
