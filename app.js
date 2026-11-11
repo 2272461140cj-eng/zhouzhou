@@ -4,13 +4,14 @@ const TEACHERS = [
   { id: "zhang", name: "张老师", image: "./teacher-3.png", date: "10/17", time: "9:30-11:30", campus: "小码王深圳福田百花校区" },
   { id: "zhou", name: "周老师", image: "./teacher-4.png", date: "10/11", time: "13:30-15:30", campus: "小码王杭州文鼎国际校区" },
   { id: "shen2", name: "申老师", image: "./teacher-5.png", date: "10/18", time: "18:30-20:30", campus: "小码王宁波宏泰广场校区" },
-  { id: "chen", name: "陈老师", image: "./teacher-6.png", date: "10/24", time: "18:30-20:30", campus: "小码王上海浦东金桥校区" },
+  { id: "chen", name: "陈老师", selectName: "陈智昊", image: "./teacher-6.png", date: "10/24", time: "18:30-20:30", campus: "小码王上海浦东金桥校区" },
   { id: "xia", name: "夏老师", image: "./teacher-7.png", date: "10/17", time: "15:30-17:30", campus: "小码王上海大宁国际校区" },
   { id: "guo", name: "郭老师", image: "./teacher-8.png", date: "10/17", time: "13:30-15:30", campus: "小码王南京新街口校区" },
   { id: "qi", name: "戚老师", image: "./teacher-9.png", date: "10/17", time: "13:30-15:30", campus: "小码王南京新街口校区" },
   { id: "li", name: "李老师", image: "./teacher-10.png", date: "10/25", time: "10:00-12:00", campus: "小码王广州珠江新城校区" },
   { id: "jin", name: "金老师", image: "./teacher-11.png", date: "10/25", time: "14:30-16:30", campus: "小码王杭州中大银泰校区" },
-  { id: "hu", name: "胡老师", image: "./teacher-12.jpg", date: "11/14", time: "9:30-11:30", campus: "小码王广州万胜围校区" }
+  { id: "hu", name: "胡老师", image: "./teacher-12.jpg", date: "11/14", time: "9:30-11:30", campus: "小码王广州万胜围校区" },
+  { id: "chen_yanjian", name: "陈老师", selectName: "陈衍健", image: "./teacher-13.jpg", date: "10/25", time: "18:30-20:30", campus: "小码王广州北京路校区" }
 ];
 
 const CITY_CAMPUSES = [
@@ -96,7 +97,7 @@ function setTimeRange(value) {
 for (const teacher of TEACHERS) {
   const option = document.createElement("option");
   option.value = teacher.id;
-  option.textContent = teacher.name;
+  option.textContent = teacher.selectName || teacher.name;
   teacherInput.append(option);
 }
 
@@ -434,6 +435,8 @@ document.querySelector("#download-current").addEventListener("click", async () =
 function resolveTeacher(value) {
   const normalized = String(value || "").trim().replace(/\s+/g, "");
   if (!normalized) return null;
+  const exactSelection = TEACHERS.find((teacher) => normalized === String(teacher.selectName || "").replace(/\s+/g, ""));
+  if (exactSelection) return exactSelection;
   return TEACHERS.find((teacher) => {
     const name = teacher.name.replace(/老师$/, "");
     return normalized === teacher.name || normalized === name || normalized.includes(name);
